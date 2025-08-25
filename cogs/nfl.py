@@ -8,7 +8,12 @@ class NFL(commands.Cog):
 
     @commands.command()
     async def nflscoreboard(self, ctx):
-        await ctx.send(get_nfl_scoreboard())
+        header, embeds = get_nfl_scoreboard()
+
+        await ctx.send(header)
+
+        for embed in embeds:
+            await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(NFL(bot))
