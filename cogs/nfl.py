@@ -8,12 +8,15 @@ class NFL(commands.Cog):
 
     @commands.command()
     async def nflscoreboard(self, ctx):
-        header, embeds = get_nfl_scoreboard()
+        try:
+            header, embeds = get_nfl_scoreboard()
 
-        await ctx.send(header)
+            await ctx.send(header)
 
-        for embed in embeds:
-            await ctx.send(embed=embed)
+            for embed in embeds:
+                await ctx.send(embed=embed)
+        except:
+            await ctx.send("⚠️ Could not fetch NFL scores. Try again later.")
 
 async def setup(bot):
     await bot.add_cog(NFL(bot))

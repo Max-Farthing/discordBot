@@ -54,16 +54,35 @@ def get_nfl_scoreboard():
             team1_abbr = team1["team"]["abbreviation"]
             team2_abbr = team2["team"]["abbreviation"]
 
-            team1_score = team1["score"]
-            team2_score = team2["score"]
+            team1_logo = team1["team"]["logo"]
+            team2_logo = team2["team"]["logo"]
+
+            team1_score = int(team1["score"])
+            team2_score = int(team2["score"])
+
+            team1_record = team1["records"][0]["summary"]
+            team2_record = team2["records"][0]["summary"]
+
+            team1_score_header = f"{team1_abbr} ({team1_record})"
+            team2_score_header = f"{team2_abbr} ({team2_record})"
 
             #set teams and scores
-            embed.add_field(name=team1_abbr, value=team1_score, inline=True)
-            embed.add_field(name=team2_abbr, value=team2_score, inline=True)
+            if state == "post" and team1_score > team2_score:
+                embed.add_field(name=f"{team1_score_header} 🏆", value=team1_score, inline=True)
+                embed.add_field(name=team2_score_header, value=team2_score, inline=True)
+                embed.set_thumbnail(url=team1_logo)
+            elif state == "post" and team2_score > team1_score:
+                embed.add_field(name=team1_score_header, value=team1_score, inline=True)
+                embed.add_field(name=f"{team2_score_header} 🏆", value=team2_score, inline=True)
+                embed.set_thumbnail(url=team2_logo)
+            else:
+                embed.add_field(name=team1_score_header, value=team1_score, inline=True)
+                embed.add_field(name=team2_score_header, value=team2_score, inline=True)
 
             #append embed to list of embeds
             embeds.append(embed)
 
         return header, embeds
     else:
-        return 0
+        print(response.text, response.status_code)
+        return Exception("API returned failing status: ", response.status_code)
