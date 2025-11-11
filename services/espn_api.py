@@ -86,3 +86,26 @@ def get_nfl_scoreboard():
     else:
         print(response.text, response.status_code)
         return Exception("API returned failing status: ", response.status_code)
+
+def get_nba_scoreboard():
+    """
+        Sends GET request to ESPN API to get all current NBA scoreboard information
+        for the day
+
+        Returns: Header and a list of Embedded Discord messages to be sent to chat
+    """
+
+    response = requests.get(f"{ESPN_BASE_URL}/basketball/nba/scoreboard")
+
+    if response.ok:
+        data = response.json()
+        games = data.get("events", [])
+        return "test", []
+
+    else:
+        print(response.text, response.status_code)
+        return Exception("API returned failing status: ", response.status_code)
+
+
+
+    return ""
