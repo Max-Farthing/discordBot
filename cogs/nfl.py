@@ -1,4 +1,3 @@
-import discord
 from discord.ext import commands
 from services.espn_api import get_nfl_scoreboard
 
