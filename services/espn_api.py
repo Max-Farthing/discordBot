@@ -1,6 +1,6 @@
 import requests
-from services.utils import create_game_embed_list, calculate_embed_color
-from config import ESPN_BASE_URL, TIMEZONE
+from services.utils import create_game_embed_list
+from config import ESPN_BASE_URL
 from datetime import datetime
 
 def get_nfl_scoreboard():

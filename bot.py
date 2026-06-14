@@ -13,7 +13,8 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 initial_extensions = [
     "cogs.common",
     "cogs.nfl",
-    "cogs.nba"
+    "cogs.nba",
+    "cogs.valorant"
 ]
 
 async def main():
