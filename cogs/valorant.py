@@ -8,8 +8,8 @@ class Valorant(commands.Cog):
     @commands.command()
     async def get_recent_match(self, ctx, name, tag): 
         try: 
-            map = get_recent_game_stats(name, tag)
-            await ctx.send(map)
+            embed = get_recent_game_stats(name, tag)
+            await ctx.send(embed=embed)
 
         except:
             await ctx.send("Could not fetch recent match")
