@@ -14,12 +14,19 @@ def get_recent_game_stats(name, tag):
     if response.ok:
         body = response.json()
         data = body.get("data", [])
-        recent_match = data[0]
+
+        recent_match = None
         
+        for match in data:
+            queue_name = match.get("metadata", {}).get("queue", {}).get("name")
+            
+            if queue_name == 'Competitive':
+                recent_match = match
+                break
+
         metaData = recent_match.get("metadata")
         mapName = metaData.get("map").get("name")
         gameTime = metaData.get("started_at")
-
         dt = datetime.fromisoformat(gameTime.replace("Z", "+00:00"))
         formatted_date = dt.strftime("%m/%d/%Y %I:%M %p").lower()
         formatted_date = formatted_date.lstrip("0").replace(" 0", " ")
@@ -63,7 +70,6 @@ def get_recent_game_stats(name, tag):
         legshots = stats.get("legshots")
         total_shots = headshots + bodyshots + legshots
         hs_percent = math.floor(headshots / total_shots * 100)
-
 
         embed.add_field(name="Player", value=foundPlayer.get("name"), inline=True)
         embed.add_field(name="\u200b", value="\u200b", inline=True) # Invisible spacer        embed.add_field(name="", value=foundPlayer.get("name"), inline=False)
