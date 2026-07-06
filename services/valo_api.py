@@ -24,6 +24,13 @@ def get_recent_game_stats(name, tag, games=1):
                 if match.get("metadata", {}).get("queue", {}).get("name") == "Competitive"
         ][:games]
         embeds = []
+        total_combat_score = 0
+        wins = 0
+        losses = 0
+        headshot_percent = 0
+        kills = 0
+        deaths = 0
+        round_count = 0
 
         for recent_match in recent_matches:
 
@@ -56,6 +63,10 @@ def get_recent_game_stats(name, tag, games=1):
                 result = "Won" if teams[1].get("won") == True else "Lost"
 
             embedColor = discord.Colour.from_str("#2ECC71") if result == "Won" else discord.Colour.from_str("#C0392B")
+            if result == "Won":
+                wins += 1
+            else:
+                losses += 1
 
             title += " " + result + ': ' + formatted_date
 
@@ -66,7 +77,9 @@ def get_recent_game_stats(name, tag, games=1):
 
             stats = foundPlayer.get("stats")
             score = stats.get("score")
+            total_combat_score += score
             rounds = teams[0].get("rounds").get("won") + teams[0].get("rounds").get("lost")
+            round_count += rounds
             acs = round(score / rounds)
 
             headshots = stats.get("headshots")
@@ -74,6 +87,10 @@ def get_recent_game_stats(name, tag, games=1):
             legshots = stats.get("legshots")
             total_shots = headshots + bodyshots + legshots
             hs_percent = math.floor(headshots / total_shots * 100) if total_shots else 0
+            headshot_percent += hs_percent
+
+            kills += stats.get("kills")
+            deaths += stats.get("deaths")
 
             embed.add_field(name="Player", value=foundPlayer.get("name"), inline=True)
             embed.add_field(name="\u200b", value="\u200b", inline=True)
@@ -87,8 +104,20 @@ def get_recent_game_stats(name, tag, games=1):
             embed.add_field(name="D", value=stats.get("deaths"), inline=True)
             embed.add_field(name="A", value=stats.get("assists"), inline=True)
             embeds.append(embed)
-        
-        return embeds
+        summary = ""
+        total_games = len(recent_matches)
+        if total_games > 1:
+            total_combat_score /= round_count
+            headshot_percent /= total_games
+            kills /= deaths
+
+            summary = (
+                f"{total_games} Game Averages: "
+                f"{total_combat_score:.2f} ACS "
+                f"{kills:.2f} K/D "
+                f"{headshot_percent:.1f} HS%"
+            )
+        return summary, embeds
     else: 
         print(response.text, response.status_code)
         raise Exception("API returned failing status: ", response.status_code)
