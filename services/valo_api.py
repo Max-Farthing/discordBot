@@ -7,9 +7,7 @@ from datetime import datetime, timezone, timedelta
 EST = timezone(timedelta(hours=-5), "EST")
 
 def get_recent_game_stats(name, tag, games=1):
-    games = max(1, min(int(games), 5))
-
-    url = f"{HENRIK_BASE_URL}/v4/matches/na/pc/{name}/{tag}"
+    url = f"{HENRIK_BASE_URL}/v1/stored-matches/na/{name}/{tag}?size={games}&mode=competitive"
     headers = {
         "User-Agent": "ValorantTestBot/1.0.0",
         "Authorization": VALORANT_API_KEY
@@ -17,12 +15,8 @@ def get_recent_game_stats(name, tag, games=1):
     response = requests.get(url, headers=headers)
     if response.ok:
         body = response.json()
-        data = body.get("data", [])
 
-        recent_matches = [
-            match for match in data
-                if match.get("metadata", {}).get("queue", {}).get("name") == "Competitive"
-        ][:games]
+        recent_matches = body.get("data", [])
         embeds = []
         total_combat_score = 0
         wins = 0
@@ -34,7 +28,7 @@ def get_recent_game_stats(name, tag, games=1):
 
         for recent_match in recent_matches:
 
-            metaData = recent_match.get("metadata")
+            metaData = recent_match.get("meta")
             mapName = metaData.get("map").get("name")
             gameTime = metaData.get("started_at")
             dt = datetime.fromisoformat(gameTime.replace("Z", "+00:00")).astimezone(EST)
@@ -42,25 +36,24 @@ def get_recent_game_stats(name, tag, games=1):
             formatted_date = formatted_date.lstrip("0").replace(" 0", " ")
             
             title = mapName
+            stats = recent_match.get("stats")
 
-            players = recent_match.get("players")
-            foundPlayer = {}
-            for player in players:
-                if player.get("name") == name:
-                    foundPlayer = player
-                    break
-
-            agent = foundPlayer.get("agent").get("name")       
+            agent = stats.get("character").get("name")       
 
             teams = recent_match.get("teams")
-            teamColor = foundPlayer.get("team_id")
+            teamColor = stats.get("team").lower()
             result = ''
 
-            # check team color against 0 and see if they match
-            if teams[0].get("team_id") == teamColor:
-                result = "Won" if teams[0].get("won") == True else "Lost"
-            elif teams[1].get("team_id") == teamColor:
-                result = "Won" if teams[1].get("won") == True else "Lost"
+            team_score = teams.get(teamColor)
+            opponent_color = "blue" if teamColor == "red" else "red"
+            opponent_score = teams.get(opponent_color)
+
+            if team_score > opponent_score:
+                result = "Won"
+            elif team_score < opponent_score:
+                result = "Lost"
+            else:
+                result = "Tied"
 
             embedColor = discord.Colour.from_str("#2ECC71") if result == "Won" else discord.Colour.from_str("#C0392B")
             if result == "Won":
@@ -75,16 +68,16 @@ def get_recent_game_stats(name, tag, games=1):
                 color=embedColor
             )
 
-            stats = foundPlayer.get("stats")
             score = stats.get("score")
             total_combat_score += score
-            rounds = teams[0].get("rounds").get("won") + teams[0].get("rounds").get("lost")
+            rounds = team_score + opponent_score
             round_count += rounds
             acs = round(score / rounds)
-
-            headshots = stats.get("headshots")
-            bodyshots = stats.get("bodyshots")
-            legshots = stats.get("legshots")
+            
+            shots = stats.get("shots")
+            headshots = shots.get("head")
+            bodyshots = shots.get("body")
+            legshots = shots.get("leg")
             total_shots = headshots + bodyshots + legshots
             hs_percent = math.floor(headshots / total_shots * 100) if total_shots else 0
             headshot_percent += hs_percent
@@ -92,7 +85,7 @@ def get_recent_game_stats(name, tag, games=1):
             kills += stats.get("kills")
             deaths += stats.get("deaths")
 
-            embed.add_field(name="Player", value=foundPlayer.get("name"), inline=True)
+            embed.add_field(name="Player", value=name, inline=True)
             embed.add_field(name="\u200b", value="\u200b", inline=True)
             embed.add_field(name="Agent", value=agent, inline=True)
 
