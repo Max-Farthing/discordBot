@@ -105,6 +105,7 @@ def get_recent_game_stats(name, tag, games=1):
             kills /= deaths
 
             summary = (
+                f"{wins} Wins - {losses} Losses + "
                 f"{total_games} Game Averages: "
                 f"{total_combat_score:.2f} ACS "
                 f"{kills:.2f} K/D "
@@ -112,5 +113,21 @@ def get_recent_game_stats(name, tag, games=1):
             )
         return summary, embeds
     else: 
+        print(response.text, response.status_code)
+        raise Exception("API returned failing status: ", response.status_code)
+
+def link_user_to_account(name, tag, user):
+    url = f"{HENRIK_BASE_URL}/v2/account/{name}/{tag}"
+    headers = {
+        "User-Agent": "ValorantTestBot/1.0.0",
+        "Authorization": VALORANT_API_KEY
+    }
+    response = requests.get(url, headers=headers)
+    if response.ok:
+        body = response.json()
+        valorant_id = body.get("data").get("puuid")
+
+        # begin logic for storing the provided valorant name + tag and puuid to needed tables in DB
+    else:
         print(response.text, response.status_code)
         raise Exception("API returned failing status: ", response.status_code)

@@ -3,6 +3,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from config import DISCORD_TOKEN
 import asyncio
+from database import init_db
 
 load_dotenv()
 intents = discord.Intents.default()
@@ -18,6 +19,8 @@ initial_extensions = [
 ]
 
 async def main():
+    init_db()
+
     for ext in initial_extensions:
         await bot.load_extension(ext)
 

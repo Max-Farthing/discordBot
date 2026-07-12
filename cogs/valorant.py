@@ -1,9 +1,20 @@
 from discord.ext import commands
-from services.valo_api import get_recent_game_stats
+from services.valo_api import get_recent_game_stats, link_user_to_account
 
 class Valorant(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.command()
+    async def link_account(self, ctx, *, player: str):
+        name, tag, throwAway = parse_valorant_player(player, default_count=1)
+
+        try:
+            result = link_user_to_account(name, tag, ctx.author)
+            await ctx.send(result)
+        except Exception as error:
+            print(error)
+            await ctx.send("Unable to link account")
 
     @commands.command()
     async def get_recent_match(self, ctx, *, player: str): 
