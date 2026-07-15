@@ -3,6 +3,7 @@ from config import HENRIK_BASE_URL, VALORANT_API_KEY
 import discord
 import math
 from datetime import datetime, timezone, timedelta
+from repositories import users, tracked_players
 
 EST = timezone(timedelta(hours=-5), "EST")
 
@@ -128,6 +129,14 @@ def link_user_to_account(name, tag, user):
         valorant_id = body.get("data").get("puuid")
 
         # begin logic for storing the provided valorant name + tag and puuid to needed tables in DB
+        users.save_user(discord_id=user.id, username=user.name)
+        tracked_players.save_player(
+            puuid=valorant_id,
+            discord_id=user.id,
+            player_name=f"{name}#{tag}",
+            last_match_id=None
+        )
+
     else:
         print(response.text, response.status_code)
         raise Exception("API returned failing status: ", response.status_code)

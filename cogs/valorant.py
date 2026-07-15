@@ -10,8 +10,8 @@ class Valorant(commands.Cog):
         name, tag, throwAway = parse_valorant_player(player, default_count=1)
 
         try:
-            result = link_user_to_account(name, tag, ctx.author)
-            await ctx.send(result)
+            link_user_to_account(name, tag, ctx.author)
+            await ctx.send("Account linked")
         except Exception as error:
             print(error)
             await ctx.send("Unable to link account")
