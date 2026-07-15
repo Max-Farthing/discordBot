@@ -11,7 +11,7 @@ class Valorant(commands.Cog):
 
         try:
             link_user_to_account(name, tag, ctx.author)
-            await ctx.send("Account linked")
+            await ctx.send("Discord account linked to Valorant Account")
         except Exception as error:
             print(error)
             await ctx.send("Unable to link account")
