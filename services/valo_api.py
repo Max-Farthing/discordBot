@@ -4,6 +4,7 @@ import discord
 import math
 from datetime import datetime, timezone, timedelta
 from repositories import users, tracked_players
+import sqlite3
 
 EST = timezone(timedelta(hours=-5), "EST")
 
@@ -137,6 +138,153 @@ def link_user_to_account(name, tag, user):
             last_match_id=None
         )
 
+    else:
+        print(response.text, response.status_code)
+        raise Exception("API returned failing status: ", response.status_code)
+
+def get_user_recent_games(user, games=1):
+    try:
+        existing_player = tracked_players.find_player_by_discord(user.id)
+    except sqlite3.Error as error:
+        print("Failed to retrieve Discord User %s", user.id)
+        return error
+
+    if not existing_player:
+        return "No linked Valorant account found", []
+
+    puuid = existing_player.get("puuid")
+    url = f"{HENRIK_BASE_URL}/v4/by-puuid/matches/na/pc/{puuid}?size={games}&mode=competitive"
+    headers = {
+        "User-Agent": "ValorantTestBot/1.0.0",
+        "Authorization": VALORANT_API_KEY
+    }
+    response = requests.get(url, headers=headers)
+    if response.ok:
+        body = response.json()
+        recent_matches = body.get("data", [])
+        embeds = []
+        total_combat_score = 0
+        wins = 0
+        losses = 0
+        headshot_percent = 0
+        kills = 0
+        deaths = 0
+        round_count = 0
+
+        for recent_match in recent_matches:
+            metadata = recent_match.get("metadata", {})
+            map_name = metadata.get("map", {}).get("name")
+            game_time = metadata.get("started_at")
+            dt = datetime.fromisoformat(game_time.replace("Z", "+00:00")).astimezone(EST)
+            formatted_date = dt.strftime("%m/%d/%Y %I:%M %p %Z").lower()
+            formatted_date = formatted_date.lstrip("0").replace(" 0", " ")
+
+            player = next(
+                (
+                    match_player
+                    for match_player in recent_match.get("players", [])
+                    if match_player.get("puuid") == puuid
+                ),
+                None
+            )
+            if not player:
+                continue
+
+            player_team = next(
+                (
+                    team
+                    for team in recent_match.get("teams", [])
+                    if team.get("team_id") == player.get("team_id")
+                ),
+                None
+            )
+            opponent_team = next(
+                (
+                    team
+                    for team in recent_match.get("teams", [])
+                    if team.get("team_id") != player.get("team_id")
+                ),
+                None
+            )
+            if not player_team or not opponent_team:
+                continue
+
+            team_score = player_team.get("rounds", {}).get("won", 0)
+            opponent_score = opponent_team.get("rounds", {}).get("won", 0)
+
+            if team_score > opponent_score:
+                result = "Won"
+                wins += 1
+            elif team_score < opponent_score:
+                result = "Lost"
+                losses += 1
+            else:
+                result = "Tied"
+
+            embed_color = (
+                discord.Colour.from_str("#2ECC71")
+                if result == "Won"
+                else discord.Colour.from_str("#C0392B")
+            )
+            embed = discord.Embed(
+                title=f"{map_name} {result}: {formatted_date}",
+                color=embed_color
+            )
+
+            stats = player.get("stats", {})
+            score = stats.get("score", 0)
+            rounds = team_score + opponent_score
+            acs = round(score / rounds) if rounds else 0
+            total_combat_score += score
+            round_count += rounds
+
+            headshots = stats.get("headshots", 0)
+            bodyshots = stats.get("bodyshots", 0)
+            legshots = stats.get("legshots", 0)
+            total_shots = headshots + bodyshots + legshots
+            hs_percent = math.floor(headshots / total_shots * 100) if total_shots else 0
+            headshot_percent += hs_percent
+
+            kills += stats.get("kills", 0)
+            deaths += stats.get("deaths", 0)
+
+            embed.add_field(
+                name="Player",
+                value=existing_player.get("player_name"),
+                inline=True
+            )
+            embed.add_field(name="\u200b", value="\u200b", inline=True)
+            embed.add_field(
+                name="Agent",
+                value=player.get("agent", {}).get("name"),
+                inline=True
+            )
+
+            embed.add_field(name="ACS", value=acs, inline=True)
+            embed.add_field(name="\u200b", value="\u200b", inline=True)
+            embed.add_field(name="HS%", value=hs_percent, inline=True)
+
+            embed.add_field(name="K", value=stats.get("kills", 0), inline=True)
+            embed.add_field(name="D", value=stats.get("deaths", 0), inline=True)
+            embed.add_field(name="A", value=stats.get("assists", 0), inline=True)
+            embeds.append(embed)
+
+        summary = ""
+        total_games = len(embeds)
+        if total_games > 1:
+            average_combat_score = total_combat_score / round_count if round_count else 0
+            average_headshot_percent = headshot_percent / total_games
+            kill_death_ratio = kills / deaths if deaths else kills
+
+            summary = (
+                f"{wins} Wins - {losses} Losses + "
+                f"{total_games} Game Averages: "
+                f"{average_combat_score:.2f} ACS "
+                f"{kill_death_ratio:.2f} K/D "
+                f"{average_headshot_percent:.1f} HS%"
+            )
+
+        return summary, embeds
     else:
         print(response.text, response.status_code)
         raise Exception("API returned failing status: ", response.status_code)

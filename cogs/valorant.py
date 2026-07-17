@@ -1,5 +1,9 @@
 from discord.ext import commands
-from services.valo_api import get_recent_game_stats, link_user_to_account
+from services.valo_api import (
+    get_recent_game_stats,
+    get_user_recent_games,
+    link_user_to_account,
+)
 
 class Valorant(commands.Cog):
     def __init__(self, bot):
@@ -7,7 +11,7 @@ class Valorant(commands.Cog):
 
     @commands.command()
     async def link_account(self, ctx, *, player: str):
-        name, tag, throwAway = parse_valorant_player(player, default_count=1)
+        name, tag, _ = parse_valorant_player(player, default_count=1)
 
         try:
             link_user_to_account(name, tag, ctx.author)
@@ -15,6 +19,19 @@ class Valorant(commands.Cog):
         except Exception as error:
             print(error)
             await ctx.send("Unable to link account")
+
+    @commands.command()
+    async def grm(self, ctx, games: int = 1):
+        summary, embeds = get_user_recent_games(ctx.author, games)
+        if not embeds:
+            await ctx.send("Could not find recent competitive matches")
+            return
+
+        if summary:
+            await ctx.send(summary)
+
+        for embed in embeds:
+            await ctx.send(embed=embed)
 
     @commands.command()
     async def get_recent_match(self, ctx, *, player: str): 
