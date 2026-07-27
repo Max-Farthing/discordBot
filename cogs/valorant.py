@@ -1,8 +1,10 @@
-from discord.ext import commands
+from discord.ext import commands, tasks
+import discord
 from services.valo_api import (
     get_recent_game_stats,
     get_user_recent_games,
     link_user_to_account,
+    get_mmr
 )
 
 class Valorant(commands.Cog):
@@ -10,8 +12,25 @@ class Valorant(commands.Cog):
         self.bot = bot
 
     @commands.command()
+    async def mmr(self, ctx, *, player: str):
+        name, tag, _ = parse_valorant_player(
+            player,
+            default_count=1,
+            allow_count=False
+        )
+        try:
+            await ctx.send(get_mmr(name, tag))
+        except Exception as error:
+            print(error)
+            await ctx.send("Unable to send mmr")
+            
+    @commands.command()
     async def link_account(self, ctx, *, player: str):
-        name, tag, _ = parse_valorant_player(player, default_count=1)
+        name, tag, _ = parse_valorant_player(
+            player,
+            default_count=1,
+            allow_count=False
+        )
 
         try:
             link_user_to_account(name, tag, ctx.author)
@@ -73,11 +92,15 @@ class Valorant(commands.Cog):
             print(error)
             await ctx.send("Could not fetch recent match")
 
-def parse_valorant_player(player: str, default_count: int):
+def parse_valorant_player(
+    player: str,
+    default_count: int,
+    allow_count: bool = True
+):
     parts = player.rsplit(" ", 1)
 
     gameCount = default_count
-    if parts[-1].isdigit():
+    if allow_count and parts[-1].isdigit():
         gameCount = int(parts[-1])
         player = parts[0]
 
@@ -91,4 +114,3 @@ def parse_valorant_player(player: str, default_count: int):
 async def setup(bot):
     await bot.add_cog(Valorant(bot))
     print("Valorant cog loaded ✅")
-

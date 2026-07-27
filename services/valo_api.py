@@ -288,3 +288,23 @@ def get_user_recent_games(user, games=1):
     else:
         print(response.text, response.status_code)
         raise Exception("API returned failing status: ", response.status_code)
+
+def get_mmr(name, tag):
+    url = f"{HENRIK_BASE_URL}/v3/mmr/na/pc/{name}/{tag}"
+    headers = {
+        "User-Agent": "ValorantTestBot/1.0.0",
+        "Authorization": VALORANT_API_KEY
+    }
+    response = requests.get(url, headers=headers)
+    if response.ok:
+        data = response.json().get("data")
+        current = data.get("current")
+        current_tier = current.get("tier")
+
+        current_rank = current_tier.get("name")
+        rr = current.get("rr")
+
+        return f"{current_rank}: {rr}rr"
+    else:
+        print(response.text, response.status_code)
+        raise Exception("API returned failing status: ", response.status_code)
